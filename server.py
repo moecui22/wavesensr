@@ -73,6 +73,9 @@ def _ht_only(a):
     return a[64:] if len(a) > 64 else a
 
 
+_num = re.compile(r"-?\d+")
+
+
 def src_serial(cfg, stop):
     """Serial CSI with two recoveries, so a recording survives a bad cable.
 
