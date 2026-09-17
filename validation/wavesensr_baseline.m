@@ -16,12 +16,15 @@ p = inputParser;
 p.addRequired('participant', @(x) ischar(x) || isstring(x));
 p.addParameter('Seconds', 180);
 p.addParameter('Countdown', 10);
-p.addParameter('Url', 'http://localhost:8777');
+p.addParameter('Url', '');
 p.addParameter('Voice', true);
-p.addParameter('OutDir', pwd);
+p.addParameter('OutDir', '');
 p.addParameter('DryRun', false);
 p.parse(participant, varargin{:});
 o = p.Results;
+cfg = ws_config();                       % url and output folder live in ws_config.m
+if isempty(o.Url), o.Url = cfg.url; end
+if isempty(o.OutDir), o.OutDir = cfg.dir; end
 o.participant = char(o.participant);
 if o.DryRun, o.Voice = false; o.Seconds = 0.2; o.Countdown = 0; end
 

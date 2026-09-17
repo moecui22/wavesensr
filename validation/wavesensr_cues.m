@@ -9,7 +9,10 @@ function wavesensr_cues(run, varargin)
 % never more than 2 of a kind in a row) -> 3 sync nods.
 % Each trial: move cue -> "Back" after HoldSec -> rest, jittered GapMin..GapMax s.
 % Every cue is logged in Unix time (UTC seconds), the same clock as WaveSensr's
-% raw CSV. Esc stops the run and saves what was done.
+% raw CSV, stamped once the word is on screen. The spoken cue lags the screen by
+% a tenth of a second or so, so the screen time is the one to analyse; set
+% 'Voice', false if that bothers you.
+% Esc stops the run and saves what was done.
 
 p = inputParser;
 p.addRequired('run', @(x) isnumeric(x) && isscalar(x));
@@ -19,11 +22,13 @@ p.addParameter('HoldSec', 2);
 p.addParameter('GapMin', 8);
 p.addParameter('GapMax', 12);
 p.addParameter('Voice', true);
-p.addParameter('OutDir', pwd);
+p.addParameter('OutDir', '');
 p.addParameter('DryRun', false);
 p.addParameter('Seed', []);
 p.parse(run, varargin{:});
 o = p.Results;
+cfg = ws_config();                                      % output folder lives in ws_config.m
+if isempty(o.OutDir), o.OutDir = cfg.dir; end
 if o.DryRun
     o.Voice = false; o.HoldSec = 0.05; o.GapMin = 0.05; o.GapMax = 0.1;
 end
@@ -59,7 +64,8 @@ end
     end
     function show(txt, sub)
         if o.DryRun, return; end
-        big.String = txt; small.String = sub; drawnow;
+        big.String = txt; small.String = sub;
+        drawnow; drawnow;                % second pass: the frame is on the display
     end
     function speak(txt)
         if o.Voice, system(sprintf('say "%s" &', txt)); end   % macOS voice, non-blocking
@@ -93,8 +99,8 @@ nods("sync_start");
 for i = 1:n
     if stopFlag, break; end
     w = words(char(conds(i)));
-    move_cue_unix(i) = unixnow();
     show(w, sprintf('trial %d of %d', i, n));
+    move_cue_unix(i) = unixnow();        % stamped after drawnow: when the word is on screen
     speak(w);
     waitUntil(move_cue_unix(i) + o.HoldSec);
     if stopFlag, break; end

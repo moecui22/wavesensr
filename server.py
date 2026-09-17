@@ -409,7 +409,8 @@ class Handler(BaseHTTPRequestHandler):
             return self._static(p[len("/static/"):])
 
         if p == "/api/state":
-            return self._send(200, dict(STATE, config=CFG))
+            # server_time lets a study script on another machine check the two clocks agree
+            return self._send(200, dict(STATE, config=CFG, server_time=time.time()))
 
         if p == "/api/settings":
             st = settings()
@@ -528,7 +529,8 @@ class Handler(BaseHTTPRequestHandler):
                 return self._send(400, {"error": "subcarriers must be 8-512"})
             CFG.update(cfg)
             start_capture(dict(CFG))
-            return self._send(200, dict(STATE, config=CFG))
+            # server_time lets a study script on another machine check the two clocks agree
+            return self._send(200, dict(STATE, config=CFG, server_time=time.time()))
 
         if p == "/api/stop":
             stop_capture()
