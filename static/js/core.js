@@ -332,7 +332,9 @@ async function loadBaseline() {
 function setShow(m) {
   show = m;
   pressed('#showSeg button', b => b.dataset.m === m);
-  $('rollCtl').hidden = m !== 'roll';
+  const roll = m === 'roll';                  // keep its space: a resizing dock jumps under the cursor
+  $('rollCtl').classList.toggle('ghosted', !roll);
+  $('rollCtl').inert = !roll;
   store('show', m);
   if (m === 'base') loadBaseline();
   scaleText(); dirty = true;

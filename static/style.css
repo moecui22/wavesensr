@@ -72,6 +72,7 @@ input,select{caret-color:var(--focus);accent-color:var(--primary)}
   border:1px solid var(--glass-edge);border-radius:30px;box-shadow:var(--glass-shadow),inset 0 1px 0 var(--glass-edge)}
 .dgroup{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:center}
 .dgroup + .dgroup{padding-left:18px;border-left:1px solid var(--hairline)}
+.ghosted{visibility:hidden}                      /* hidden, but still holding its place */
 .lbl{font-size:10.5px;font-weight:600;color:var(--muted);letter-spacing:.08em;text-transform:uppercase}
 .val{font:500 13px var(--mono);min-width:52px;text-align:center;font-variant-numeric:tabular-nums}
 
