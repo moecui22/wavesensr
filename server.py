@@ -136,6 +136,8 @@ def src_serial(cfg, stop):
         import serial
         opn = lambda dev: serial.Serial(dev, cfg["baud"], timeout=1)
     except ImportError:
+        if os.name == "nt":                          # no file fallback for COM ports
+            raise RuntimeError("the serial source needs pyserial:  py -m pip install pyserial")
         opn = _plain_serial                          # no pyserial: read the device as a file
     port = cfg["port"]
     while not stop.is_set():
