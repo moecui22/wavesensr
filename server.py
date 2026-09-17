@@ -76,6 +76,26 @@ def _ht_only(a):
 _num = re.compile(r"-?\d+")
 
 
+def _ports():
+    """Serial devices that could be the receiver, on either platform."""
+    if os.name == "nt":
+        try:
+            from serial.tools.list_ports import comports
+            return sorted(p.device for p in comports())
+        except Exception:
+            return ["COM%d" % i for i in range(1, 21)]
+    import glob
+    return sorted(glob.glob("/dev/tty.usbmodem*") + glob.glob("/dev/tty.wchusbserial*")
+                  + glob.glob("/dev/tty.SLAB*") + glob.glob("/dev/ttyUSB*") + glob.glob("/dev/ttyACM*"))
+
+
+def _next_port(port):
+    cands = _ports()
+    if not cands:
+        return port
+    return cands[(cands.index(port) + 1) % len(cands)] if port in cands else cands[0]
+
+
 def _plain_serial(dev):
     """A USB board without pyserial: the device is just a file.
 
@@ -117,20 +137,19 @@ def src_serial(cfg, stop):
         opn = lambda dev: serial.Serial(dev, cfg["baud"], timeout=1)
     except ImportError:
         opn = _plain_serial                          # no pyserial: read the device as a file
-    import glob
     port = cfg["port"]
     while not stop.is_set():
         try:
             s = opn(port)
         except Exception:
-            cands = sorted(glob.glob("/dev/tty.usbmodem*"))
-            if cands and port not in cands:
-                port = cands[0]                      # replug can move the node name
+            port = _next_port(port)                  # a replug moves the node name; Windows numbers COM ports
             STATE["link"] = "waiting for the receiver"
             time.sleep(1.0)
             continue
         STATE["link"] = "ok"
-        last_csi, last_kick = time.time(), 0.0
+        opened = time.time()
+        last_csi, last_kick = opened, 0.0
+        quiet = False
         try:
             while not stop.is_set():
                 raw = s.readline()
@@ -145,6 +164,9 @@ def src_serial(cfg, stop):
                             last_csi = now
                             yield a
                             continue
+                if last_csi == opened and now - opened > 8.0:
+                    quiet = True                     # opened fine but says nothing: some other device
+                    break
                 if now - last_csi > 5.0 and now - last_kick > 15.0:
                     last_kick = now
                     STATE["link"] = "stalled, resetting the receiver"
@@ -162,6 +184,11 @@ def src_serial(cfg, stop):
                 s.close()
             except Exception:
                 pass
+        if quiet:
+            nxt = _next_port(port)
+            STATE["link"] = "no CSI on %s" % port if nxt == port else "nothing on %s, trying %s" % (port, nxt)
+            port = nxt
+            time.sleep(0.5)
 
 
 def src_udp(cfg, stop):
@@ -661,6 +688,7 @@ def main():
     ap.add_argument("--subcarriers", type=int, default=CFG["subcarriers"])
     ap.add_argument("--http", type=int, default=8777)
     ap.add_argument("--no-autostart", action="store_true")
+    ap.add_argument("--open", action="store_true", help="open the page in a browser")
     a = ap.parse_args()
     CFG.update(source=a.source, port=a.port, baud=a.baud, bind=a.bind,
                fs=a.fs, subcarriers=a.subcarriers)
@@ -672,6 +700,9 @@ def main():
     print("[wavesensr] http://localhost:%d" % a.http)
     if not a.no_autostart:
         start_capture(dict(CFG))
+    if a.open:
+        import webbrowser
+        threading.Timer(1.0, webbrowser.open, ("http://localhost:%d" % a.http,)).start()
     try:
         srv.serve_forever()
     except KeyboardInterrupt:
