@@ -76,6 +76,35 @@ def _ht_only(a):
 _num = re.compile(r"-?\d+")
 
 
+def _plain_serial(dev):
+    """A USB board without pyserial: the device is just a file.
+
+    Baud means nothing over USB CDC, so the only trick is opening /dev/cu.* rather
+    than /dev/tty.*, which would block waiting for a carrier that never comes. Reset
+    by RTS is not available this way, so it is a no-op; a stalled board needs a replug.
+    """
+    import select
+    f = open(dev.replace("/dev/tty.", "/dev/cu."), "rb", buffering=0)
+    buf = bytearray()
+
+    class Plain:
+        def readline(self):
+            while b"\n" not in buf:
+                if not select.select([f], [], [], 1.0)[0]:
+                    return b""                   # quiet second: let the caller check for stop
+                chunk = f.read(4096)
+                if not chunk:
+                    raise OSError("receiver closed")
+                buf.extend(chunk)
+            i = buf.index(b"\n")
+            line = bytes(buf[:i + 1]); del buf[:i + 1]
+            return line
+        def setDTR(self, _): pass
+        def setRTS(self, _): pass
+        def close(self): f.close()
+    return Plain()
+
+
 def src_serial(cfg, stop):
     """Serial CSI with two recoveries, so a recording survives a bad cable.
 
@@ -85,13 +114,14 @@ def src_serial(cfg, stop):
     """
     try:
         import serial
+        opn = lambda dev: serial.Serial(dev, cfg["baud"], timeout=1)
     except ImportError:
-        raise RuntimeError("the serial source needs pyserial:  pip install pyserial")
+        opn = _plain_serial                          # no pyserial: read the device as a file
     import glob
     port = cfg["port"]
     while not stop.is_set():
         try:
-            s = serial.Serial(port, cfg["baud"], timeout=1)
+            s = opn(port)
         except Exception:
             cands = sorted(glob.glob("/dev/tty.usbmodem*"))
             if cands and port not in cands:
