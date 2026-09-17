@@ -1,0 +1,144 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>WaveSensr</title>
+<link rel="stylesheet" href="/static/style.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><g fill='none' stroke='%230066cc' stroke-width='2.4' stroke-linecap='round'><path d='M11 21a7 7 0 0 1 0-10'/><path d='M6.5 25.5a13 13 0 0 1 0-19'/></g><circle cx='19' cy='16' r='3' fill='%230066cc'/></svg>">
+
+<header class="topbar">
+  <span class="brand"><svg class="glyph" width="20" height="20" viewBox="0 0 32 32" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M11 21a7 7 0 0 1 0-10"/><path d="M6.5 25.5a13 13 0 0 1 0-19"/></g><circle cx="19" cy="16" r="3.2" fill="currentColor"/></svg>WaveSensr<a class="sig" href="mailto:mcui@research.baycrest.org" title="Email mcui@research.baycrest.org">@mecui22</a></span>
+  <div class="chips mode" id="modeSeg" role="group" aria-label="Mode"><button data-mode="live" class="on">Live</button><button data-mode="past">Past</button></div>
+  <span class="range" id="tvRange"></span>
+  <button class="recbadge" id="recBadge" hidden title="Recording in Live. Click to return."><i class="dot rec"></i>REC <span id="recBadgeTime"></span></button>
+  <span class="saved" id="b-saved" hidden></span>
+  <span class="status" id="b-status"><i class="dot"></i><span id="statusText">offline</span><span class="rate" id="b-rate"></span></span>
+  <button class="distchip" id="b-dist" data-panel="setupPanel"></button>
+  <nav class="navlinks" aria-label="Panels">
+    <button class="dlink" data-panel="calPanel" id="btn-cal">Calibrate</button>
+    <button class="dlink" data-panel="recPanel">Recordings<span class="count" id="recCount"></span></button>
+    <button class="dlink" data-panel="setupPanel">Setup</button>
+    <button class="themebtn" id="themeBtn" title="Light or dark" aria-label="Toggle appearance">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><circle cx="8" cy="8" r="3.1"/><path d="M8 1v1.6M8 13.4V15M15 8h-1.6M2.6 8H1M12.9 3.1l-1.1 1.1M4.2 11.8l-1.1 1.1M12.9 12.9l-1.1-1.1M4.2 4.2L3.1 3.1"/></svg>
+    </button>
+  </nav>
+</header>
+
+<div id="announce" class="sr-only" aria-live="polite"></div>
+<div id="errBanner" class="banner err" hidden></div>
+
+<main class="view">
+  <canvas id="tv" aria-label="Live traces of every Wi-Fi slice"></canvas>
+  <div class="unavail" id="unavail" hidden role="status">
+    <div class="setup3d" id="setup3d" role="img" aria-label="3D setup: participant seated at a desk, two boards on thin stands either side of the head at eye height, faces toward each other, antennas up, with the sensitive zone between them">
+      <svg class="leaders" aria-hidden="true"></svg>
+      <button class="pill ghost zoomback" id="zoomBack" hidden>Back to room</button>
+    </div>
+    <div class="setupbar">
+      <span class="lbl">Receiver on the participant's</span>
+      <div class="chips" id="rxSide" role="group" aria-label="Receiver side"><button data-side="left">Left</button><button data-side="right">Right</button></div>
+      <span class="hint">Click a board to zoom in · drag to rotate</span>
+    </div>
+    <div class="figdist"><button class="linklike" id="figDist"></button>
+    </div>
+    <h2 id="unTitle">Live data not available</h2>
+    <p id="unText"></p>
+    <p class="setupcap">Boards upright on stands at eye height, antennas up, chip sides facing each other, head centred between them.</p>
+  </div>
+</main>
+
+<div class="bottom" id="bottomBar">
+<div class="player" id="player" hidden role="group" aria-label="Playback">
+  <button class="pill primary" id="pl-play">Pause</button>
+  <button class="pill ghost step5" id="pl-back" aria-label="Back 5 seconds">−5 s</button>
+  <button class="pill ghost step5" id="pl-fwd" aria-label="Forward 5 seconds">+5 s</button>
+  <span class="val" id="pl-pos">0:00</span>
+  <input type="range" id="pl-seek" min="0" max="1000" step="1" value="0" aria-label="Position in recording">
+  <span class="val" id="pl-dur">0:00</span>
+  <div class="chips" id="pl-speed"><button data-s="0.5">0.5×</button><button data-s="1" class="on">1×</button><button data-s="2">2×</button><button data-s="4">4×</button></div>
+</div>
+
+<nav class="dock" aria-label="Controls">
+  <div class="dgroup">
+    <button id="btn-capture" class="pill primary">Start</button>
+    <button id="btn-rec" class="pill ghost"><i class="reddot"></i><span id="recText">Record</span></button>
+  </div>
+  <div class="dgroup" role="group" aria-label="Show">
+    <div class="chips" id="showSeg" title="What the traces show"><button data-m="raw">Raw</button><button data-m="roll">Rolling</button><button data-m="base">Baseline</button></div>
+    <span class="stepper" id="rollCtl" title="Rolling window"><button class="round" id="rw-dn" aria-label="Shorter rolling window">−</button><span class="val" id="rwText">5 s</span><button class="round" id="rw-up" aria-label="Longer rolling window">+</button></span>
+  </div>
+  <div class="dgroup">
+    <div class="chips" id="viewSeg" role="group" aria-label="View"><button data-view="lines">Lines</button><button data-view="heat">Heat</button></div>
+    <span class="select" title="Time window"><select id="f-tb" aria-label="Time window"><option value="5">5 s</option><option value="10" selected>10 s</option><option value="20">20 s</option><option value="30">30 s</option></select></span>
+    <span class="select" title="Slices per page"><select id="f-ch" aria-label="Slices per page"><option value="16">16 slices</option><option value="32" selected>32 slices</option><option value="64">64 slices</option><option value="0">All slices</option></select></span>
+    <span class="stepper" title="Scale"><button class="round" id="sc-dn" aria-label="Smaller scale">−</button><span class="val" id="scText">±5 dB</span><button class="round" id="sc-up" aria-label="Larger scale">+</button></span>
+  </div>
+</nav>
+</div>
+
+<aside class="panel" id="calPanel" hidden aria-label="Calibration">
+  <div class="phead"><h2>Calibration</h2><button class="dlink" id="cal-close">Done</button></div>
+  <p class="hsub">Resting baseline. 3 minutes, after a 10 s countdown.</p>
+  <ul class="rules">
+    <li>Participant seated, door closed</li>
+    <li>Feet flat, hands on the desk</li>
+    <li>Head still, eyes free</li>
+    <li>Breathe normally, no talking</li>
+  </ul>
+  <div class="stage">
+    <div class="calmain">
+      <p class="calstep" id="cal-title">Ready</p>
+      <p class="calclock" id="cal-clock">3:00</p>
+    </div>
+    <button id="cal-go" class="pill primary">Start</button>
+  </div>
+  <label class="check small"><input id="cal-sound" type="checkbox" checked><span>Chime at start and end</span></label>
+</aside>
+
+<aside class="panel" id="recPanel" hidden aria-label="Recordings">
+  <div class="phead"><h2>Recordings</h2><button class="dlink" data-close>Done</button></div>
+  <p class="hsub">CSV files in <span class="path" id="recDir"></span></p>
+  <div id="sessions" class="sessions">Loading…</div>
+</aside>
+
+<aside class="panel" id="setupPanel" hidden aria-label="Setup">
+  <div class="phead"><h2>Setup</h2><button class="dlink" data-close>Done</button></div>
+  <h3>Source</h3>
+  <div class="form">
+    <label>Source
+      <select id="f-source">
+        <option value="serial">ESP32 by USB</option>
+        <option value="udp">Network (UDP)</option>
+      </select>
+    </label>
+    <label>Sample rate <span class="unit"><input id="f-fs" type="number" step="1" min="5" value="60"><em>Hz</em></span></label>
+    <input id="f-sub" type="hidden" value="56">
+    <label class="only-serial">Device <input id="f-port" value="/dev/tty.usbmodem1401"></label>
+    <label class="only-serial">Baud <input id="f-baud" type="number" value="921600"></label>
+    <label class="only-udp">Bind <input id="f-bind" value="0.0.0.0:5566"></label>
+  </div>
+  <p class="hsub">Applies at the next Start.</p>
+  <h3>Boards</h3>
+  <div class="form">
+    <label>Distance between boards
+      <span class="unit"><input id="f-dist" type="number" min="10" max="2000" step="1" placeholder="Measure"><em>cm</em><button class="pill ghost" id="btn-dist">Save</button></span>
+    </label>
+  </div>
+  <p class="hsub" id="distMsg">Antenna to antenna. Recommended 100–120 cm.</p>
+  <h3>Recordings</h3>
+  <div class="form">
+    <label>Save recordings to
+      <span class="unit"><input id="f-savedir" spellcheck="false" autocomplete="off"><button class="pill ghost" id="btn-savedir">Save</button></span>
+    </label>
+  </div>
+  <p class="hsub" id="savedirMsg">CSV files save here.</p>
+  <h3>Display</h3>
+  <label class="toggle"><input id="f-cm" type="checkbox" checked><span>Remove gain jumps (Rolling, Baseline)</span></label>
+  <p class="hsub">Raw: strength in dB. Rolling: change from each slice's recent average. Baseline: change from the latest calibration. Scroll to page through slices. Display only; recordings stay raw.</p>
+</aside>
+
+<script src="/static/js/core.js"></script>
+<script src="/static/js/live.js"></script>
+<script src="/static/js/calibration.js"></script>
+<script src="/static/js/player.js"></script>
+<script type="importmap">{"imports": {"three": "/static/vendor/three.module.min.js"}}</script>
+<script type="module" src="/static/setup3d.js"></script>

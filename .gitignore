@@ -1,0 +1,5 @@
+# recordings, session index and local settings stay on this Mac
+data/
+__pycache__/
+*.pyc
+.DS_Store
