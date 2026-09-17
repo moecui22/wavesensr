@@ -291,14 +291,15 @@ class Capture(threading.Thread):
                     STATE["frames"] = frames
                     _push(dict(STATE, packets=live))
                     live = []
-                rec = self.rec
-                if rec:
-                    if not rec["header"]:
-                        rec["raw"].write("unix_time," + ",".join("s%d" % (k + 1) for k in range(n)) + "\n")
-                        rec["header"] = True
-                    # Unix time per packet, so a recording lines up with other devices.
-                    rec["raw"].write("%.4f," % now + ",".join(_num3(x) for x in amps) + "\n")
-                    rec["n"] += 1
+                with LOCK:                           # Stop closes the file under this lock; never write after it
+                    rec = self.rec
+                    if rec:
+                        if not rec["header"]:
+                            rec["raw"].write("unix_time," + ",".join("s%d" % (k + 1) for k in range(n)) + "\n")
+                            rec["header"] = True
+                        # Unix time per packet, so a recording lines up with other devices.
+                        rec["raw"].write("%.4f," % now + ",".join(_num3(x) for x in amps) + "\n")
+                        rec["n"] += 1
         except Exception as e:
             if self.current:
                 STATE["error"] = "%s: %s" % (type(e).__name__, e)
