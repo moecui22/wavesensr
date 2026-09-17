@@ -120,7 +120,7 @@ function furniture(id, place) {
     place(g.scene); room.add(g.scene); g.scene.updateWorldMatrix(true, true); done(g.scene);
   }, undefined, e => console.error('setup figure: could not load ' + id, e)));
 }
-furniture('wooden_table_02', m => {                   // 1 m long (the model is 113 cm), 71 cm deep, top at 80 cm
+const tableReady = furniture('wooden_table_02', m => {   // 1 m long (the model is 113 cm), 71 cm deep
   m.updateWorldMatrix(true, true);
   m.scale.x *= 100 / new THREE.Box3().setFromObject(m).getSize(new THREE.Vector3()).x;
   m.position.set(0, 0, 46);
@@ -197,7 +197,10 @@ new GLTFLoader().load('/static/vendor/Xbot.glb', gltf => {
     return {name: n, bone: b, restLocal: parentRest.invert().multiply(restWorld)};
   });
   builtFor = 0;                                        // rebuild the rig at the real eye height
-  chairReady.then(chair => seatOnChair(model, chair));
+  Promise.all([chairReady, tableReady]).then(([chair, table]) => {
+    seatOnChair(model, chair);                         // sit first: it moves the whole body
+    restHandsOn(table);
+  });
 }, undefined, e => console.error('setup figure: could not load the person model', e));
 
 // Seat the person properly: find the chair's seat surface, slide the chair under the
@@ -235,6 +238,17 @@ function seatOnChair(model, chair) {
   person.position.y += dy; person.updateWorldMatrix(true, true);
   EYE += dy; builtFor = 0;                             // boards and field follow the eyes
   if (window.__ws) window.__ws.seat = {seat, hips, dy};
+}
+
+// The desk meets the hands, not the other way round: a seated person's hands rest on
+// the top, and the arm pose is fixed, so set the desk height from where the hands are.
+function restHandsOn(table) {
+  person.updateWorldMatrix(true, true);
+  const hand = new THREE.Vector3().setFromMatrixPosition(person.getObjectByName('mixamorigRightHand').matrixWorld);
+  const b = new THREE.Box3().setFromObject(table);
+  const want = hand.y - 2;                             // palm on the surface, wrist bone just above
+  table.scale.y *= (want - b.min.y) / (b.max.y - b.min.y);   // legs stay on the floor
+  table.updateWorldMatrix(true, true);
 }
 
 // ---- a board, modelled: PCB, metal chip cover, printed antenna, two USB-C ports, pin headers.

@@ -5,7 +5,7 @@ function wavesensr_cues(run, varargin)
 %   wavesensr_cues(2, 'OutDir', '/Volumes/T7/work/wavesensr')
 %   wavesensr_cues(1, 'DryRun', true)  % quick check: no window, no voice, short gaps
 %
-% Per run: 3 sync nods -> 44 trials (left/right/up/down x 8, still x 12, shuffled,
+% Per run: 3 sync nods -> 60 trials (six movements x 8, still x 12, shuffled,
 % never more than 2 of a kind in a row) -> 3 sync nods.
 % Each trial: move cue -> "Back" after HoldSec -> rest, jittered GapMin..GapMax s.
 % Every cue is logged in Unix time (UTC seconds), the same clock as WaveSensr's
@@ -16,7 +16,7 @@ function wavesensr_cues(run, varargin)
 
 p = inputParser;
 p.addRequired('run', @(x) isnumeric(x) && isscalar(x));
-p.addParameter('PerDirection', 8);
+p.addParameter('PerDirection', 8);   % per movement: left/right/up/down/tilt left/tilt right
 p.addParameter('Still', 12);
 p.addParameter('HoldSec', 2);
 p.addParameter('GapMin', 8);
@@ -36,11 +36,12 @@ if isempty(o.Seed), rng('shuffle'); else, rng(o.Seed); end
 
 conds = [repmat("left", 1, o.PerDirection), repmat("right", 1, o.PerDirection), ...
          repmat("up", 1, o.PerDirection), repmat("down", 1, o.PerDirection), ...
+         repmat("tiltL", 1, o.PerDirection), repmat("tiltR", 1, o.PerDirection), ...
          repmat("still", 1, o.Still)];
 conds = shuffle_limited(conds, 2);
 n = numel(conds);
-words = containers.Map({'left','right','up','down','still'}, ...
-                       {'Left','Right','Up','Down','Stay still'});
+words = containers.Map({'left','right','up','down','tiltL','tiltR','still'}, ...
+                       {'Left','Right','Up','Down','Left ear down','Right ear down','Stay still'});
 
 unixnow = @() posixtime(datetime('now', 'TimeZone', 'UTC'));
 stamp = char(datetime('now', 'Format', 'yyyy-MM-dd_HH-mm-ss'));
