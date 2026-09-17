@@ -200,27 +200,41 @@ new GLTFLoader().load('/static/vendor/Xbot.glb', gltf => {
   chairReady.then(chair => seatOnChair(model, chair));
 }, undefined, e => console.error('setup figure: could not load the person model', e));
 
-// Rest the lowest point of the body under the hips on the seat surface, found by a ray.
+// Seat the person properly: find the chair's seat surface, slide the chair under the
+// pelvis (the pose decides where the pelvis is), then drop the body until it rests on it.
 function seatOnChair(model, chair) {
   model.updateWorldMatrix(true, true);
   model.traverse(o => { if (o.isSkinnedMesh) o.skeleton.update(); });   // measure the seated pose, not the bind pose
   const hips = new THREE.Vector3().setFromMatrixPosition(model.getObjectByName('mixamorigHips').matrixWorld);
-  let low = Infinity;
-  const v = new THREE.Vector3();
-  model.traverse(o => {
-    if (!o.isSkinnedMesh) return;
-    const pos = o.geometry.attributes.position;
-    for (let i = 0; i < pos.count; i += 3) {
-      o.getVertexPosition(i, v); o.localToWorld(v);
-      if (Math.abs(v.x - hips.x) < 12 && Math.abs(v.z - hips.z) < 10 && v.y < low) low = v.y;
+
+  // The seat is the height most downward rays share: it is one broad flat surface, while
+  // the backrest and the frame only ever show a ray their narrow top edge.
+  const b = new THREE.Box3().setFromObject(chair), down = new THREE.Vector3(0, -1, 0);
+  const ray = new THREE.Raycaster(new THREE.Vector3(), down);
+  const levels = new Map();
+  for (let x = b.min.x + 1; x <= b.max.x - 1; x += 1.5)
+    for (let z = b.min.z + 1; z <= b.max.z - 1; z += 1.5) {
+      ray.set(new THREE.Vector3(x, b.max.y + 10, z), down);
+      const h = ray.intersectObject(chair, true)[0];
+      if (!h || h.point.y < 20) continue;                   // skip the floor and the legs
+      const k = Math.round(h.point.y / 2);
+      const e = levels.get(k) || {n: 0, x: 0, y: 0, z: 0};
+      e.n++; e.x += x; e.y += h.point.y; e.z += z; levels.set(k, e);
     }
-  });
-  const hit = new THREE.Raycaster(new THREE.Vector3(hips.x, 200, hips.z), new THREE.Vector3(0, -1, 0))
-    .intersectObject(chair, true)[0];
-  if (!hit || !isFinite(low)) return;
-  const dy = hit.point.y + .3 - low;
+  let seat = null;
+  for (const e of levels.values()) if (!seat || e.n > seat.n) seat = e;
+  if (!seat) return;
+  seat = {x: seat.x / seat.n, y: seat.y / seat.n, z: seat.z / seat.n};
+
+  chair.position.x += hips.x - seat.x;                      // the seat goes under the pelvis
+  chair.position.z += hips.z - seat.z;
+  chair.updateWorldMatrix(true, true);
+
+  // the pelvis bone sits about 9 cm above the surface a person's weight rests on
+  const dy = seat.y + 9 - hips.y;
   person.position.y += dy; person.updateWorldMatrix(true, true);
   EYE += dy; builtFor = 0;                             // boards and field follow the eyes
+  if (window.__ws) window.__ws.seat = {seat, hips, dy};
 }
 
 // ---- a board, modelled: PCB, metal chip cover, printed antenna, two USB-C ports, pin headers.
