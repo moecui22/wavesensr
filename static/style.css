@@ -104,6 +104,7 @@ button:disabled{opacity:.4;cursor:default;transform:none}
 .select::after{content:"";position:absolute;right:13px;top:50%;width:6px;height:6px;margin-top:-5px;
   border:solid var(--muted);border-width:0 1.5px 1.5px 0;transform:rotate(45deg);pointer-events:none}
 .dlink{background:none;border:0;color:var(--link);font-size:14px;padding:7px 8px;border-radius:8px;white-space:nowrap}
+.filebtn{display:inline-block;margin-top:12px;cursor:pointer}
 .dlink.on{background:var(--fillsoft)}
 .distchip{background:none;border:0;font:500 12px var(--mono);color:var(--muted);padding:7px 8px;border-radius:8px;white-space:nowrap;cursor:pointer;min-width:0;overflow:hidden;text-overflow:ellipsis}
 .navlinks{flex:none}

@@ -7,6 +7,19 @@ async function openPast(id) {
   const [info, text] = await Promise.all([
     api('/api/sessions/' + id), fetch('/api/sessions/' + id + '/raw.csv?view=1').then(r => r.ok ? r.text() : '')]);
   const s = info.session || {};
+  playText(text, s.label || ('Recording ' + id), s.started, s.ended);
+}
+
+// Any WaveSensr CSV from disk: someone else's recording, or one shared in a zip.
+$('pastFile').onchange = async e => {
+  const f = e.target.files[0]; e.target.value = '';
+  if (!f) return;
+  closePanels();
+  playText(await f.text(), f.name.replace(/\.csv$/i, ''), null, null);
+};
+
+function playText(text, label, started, ended) {
+  const s = {started, ended};
   const lines = text.split('\n').filter(Boolean);
   if (lines.length < 3) { toast('No data in that recording.'); return; }
   const cols = lines[0].split(',').length - 1, n = lines.length - 1;
@@ -19,8 +32,9 @@ async function openPast(id) {
   if (Number.isNaN(t[0])) {                               // older recordings: no per-packet time
     const rate = n / Math.max(1, (s.ended || s.started) - s.started);
     for (let i = 0; i < n; i++) t[i] = i / rate;
-  } else { const a = t[0]; for (let i = 0; i < n; i++) t[i] -= a; }
-  Object.assign(player, {on: true, label: s.label || ('Recording ' + id), started: s.started, n, cols, t, db,
+  } else { const a = t[0]; s.started = s.started || a; for (let i = 0; i < n; i++) t[i] -= a; }
+  if (!cols || Number.isNaN(t[n - 1])) { toast('Not a WaveSensr recording.'); return; }
+  Object.assign(player, {on: true, label, started: s.started, n, cols, t, db,
     dur: t[n - 1], fs: (n - 1) / Math.max(t[n - 1], 1e-6), playing: true, lastTick: performance.now()});
   document.body.classList.add('past');
   $('player').hidden = false; $('btn-capture').hidden = true; $('btn-rec').hidden = true;

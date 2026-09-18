@@ -13,6 +13,8 @@ Mac: double-click `start.command` instead.
 
 If "No packets": check the sender has power. If "No receiver": try another USB cable.
 
+**No boards?** Recordings → **Open a recording from disk…** → `validation/pilot_2026-09-17/data/wifi_task.csv` replays the pilot.
+
 ## The views
 
 - **Raw** — signal strength per frequency slice
