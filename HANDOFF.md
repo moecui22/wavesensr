@@ -55,3 +55,53 @@ The status pill says what's wrong in plain words.
 - Boards more than about 2 m apart, or a wall between them, will also look like this.
 
 Quit by closing the terminal window.
+
+## How the two boards were programmed
+
+Both boards are **Freenove ESP32-S3** running Espressif's own CSI examples, unmodified:
+[esp-csi](https://github.com/espressif/esp-csi) at commit `8633d67` (22 Apr 2026),
+`examples/get-started/`, built with **ESP-IDF v5.4.4** for target `esp32s3`.
+
+| Board | Example | MAC | Where it goes |
+|---|---|---|---|
+| **Receiver** | `csi_recv` | 28:84:85:a4:3a:a8 | USB to the laptop |
+| **Sender** | `csi_send` | 28:84:85:a7:94:50 | any USB charger |
+
+The settings that matter, all in each example's `main/app_main.c`:
+
+| Setting | Value | Meaning |
+|---|---|---|
+| `CONFIG_LESS_INTERFERENCE_CHANNEL` | 11 | Wi-Fi channel both boards use (must match) |
+| `CONFIG_WIFI_BANDWIDTH` | `WIFI_BW_HT40` | 40 MHz wide: 128 frequency slices per packet, ~114 usable |
+| `CONFIG_ESP_NOW_RATE` | MCS0, long guard | the slowest, most robust rate |
+| `CONFIG_SEND_FREQUENCY` (sender) | 100 | packets per second; ~60–85 arrive, depending on other traffic |
+| `CONFIG_CSI_SEND_MAC` | 1a:00:00:00:00:00 | the sender's identity; the receiver keeps packets from this address only, so no other Wi-Fi gets recorded |
+| `CONFIG_GAIN_CONTROL` (receiver) | 1 | the receiver's automatic gain is on — amplitudes are relative, not calibrated |
+
+The sender broadcasts ESP-NOW packets; the receiver listens in sniffer mode and
+prints each packet's channel estimate over USB as a `CSI_DATA` line, which
+WaveSensr reads. Neither board joins a network.
+
+### To reflash or change a setting
+
+Install ESP-IDF v5.4.4 (on Windows, Espressif's installer gives you an
+"ESP-IDF Command Prompt"), then:
+
+```bash
+git clone https://github.com/espressif/esp-csi.git
+cd esp-csi && git checkout 8633d67
+cd examples/get-started/csi_send        # or csi_recv for the other board
+idf.py set-target esp32s3
+idf.py build
+idf.py -p COM5 flash monitor             # the board's port; /dev/cu.usbmodem… on a Mac
+```
+
+To change the packet rate, edit `CONFIG_SEND_FREQUENCY` in
+`csi_send/main/app_main.c` and reflash **the sender only**. To move channel, change
+`CONFIG_LESS_INTERFERENCE_CHANNEL` in **both** and reflash both — a mismatch looks
+exactly like "No packets".
+
+You probably don't need to change the rate: detection in the first session was
+identical from 70 Hz down to 3 Hz (`rate_sweep.m`), so for head movement the
+default is already far more than enough. Record at the full rate and thin it in
+analysis if you want a lower one.

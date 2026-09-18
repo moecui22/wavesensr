@@ -137,7 +137,7 @@ idx = varfun(@isnumeric, T, 'OutputFormat', 'uniform');
 end
 function idx = pick_axes(names, gv, tcol)
 % the three gyroscope axes: named gx/gy/gz or wx/wy/wz, else the three most variable columns
-hit = find(~cellfun(@isempty, regexpi(names, '^(gyro)?[gw]?[_ ]?[xyz]$')));
+hit = find(~cellfun(@isempty, regexpi(names, '^(gyro|gyr|w|g)[_ ]?[xyz]([_ ].*)?$')));   % gyro_x_dps, gx, wz ...
 hit = hit(hit ~= tcol);
 if numel(hit) >= 3, idx = hit(1:3); return; end
 v = std(gv, 0, 1, 'omitnan'); v(tcol) = -Inf;
