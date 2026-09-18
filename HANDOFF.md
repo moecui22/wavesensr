@@ -4,7 +4,7 @@ Runs on your laptop. No internet, no account. The boards don't use your Wi-Fi.
 
 ## Run it (Windows)
 
-1. Download: **Code → Download ZIP**, unzip.
+1. Unzip **WaveSensr.zip** into a normal folder (not inside the zip).
 2. Receiver (**28:84:85:a4:3a:a8**) into USB. Sender on any charger.
 3. Double-click **`start.bat`**. The page opens.
 4. **Setup** → type the antenna-to-antenna distance (100–120 cm).
