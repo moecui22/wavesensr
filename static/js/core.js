@@ -99,7 +99,7 @@ function rebuildRolling() {
 function pushFrame(f) {                                 // a live packet: [unix time, strengths…]
   const db = new Float64Array(f.length - 1);
   for (let k = 0; k < db.length; k++) db[k] = f[k + 1] > 0 ? 20 * Math.log10(f[k + 1]) : NaN;
-  pushDb(f[0], db, last.fs_meas || +$('f-fs').value || 60);
+  pushDb(f[0], db, last.fs_meas || 60);
   lastPacketAt = Date.now();
 }
 function fitRaw() {                                     // 2nd-98th percentile of everything buffered

@@ -386,7 +386,7 @@ def write_meta(sid, **extra):
         "app": "WaveSensr", "session_id": sid, "label": r["label"], "note": r["note"],
         "started_unix": r["started"], "started": iso(r["started"]),
         "ended_unix": r["ended"], "ended": iso(r["ended"]),
-        "source": r["source"], "configured_rate_hz": r["fs"], "measured_rate_hz": STATE.get("fs_meas"),
+        "source": r["source"], "measured_rate_hz": STATE.get("fs_meas"),   # the boards set the rate; this is what arrived
         "slices": r["subcarriers"], "board_distance_cm": r["distance_cm"],
         "columns": "unix_time = packet arrival (Unix s); s1..sN = |CSI| per slice (HT-LTF), s1 lowest frequency",
     }, **extra)

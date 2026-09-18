@@ -75,7 +75,7 @@ $('f-source').onchange = syncFields;
 
 async function startLive() {
   count = 0; dirty = true;
-  await post('/api/start', {source: $('f-source').value, fs: +$('f-fs').value,
+  await post('/api/start', {source: $('f-source').value,
     subcarriers: +$('f-sub').value, port: $('f-port').value,
     baud: +$('f-baud').value, bind: $('f-bind').value});
 }
@@ -215,7 +215,6 @@ $('btn-savedir').onclick = async () => {
 api('/api/state').then(s => {
   const c = s.config || {};
   $('f-source').value = ['serial', 'udp'].includes(c.source) ? c.source : 'serial';
-  if (c.fs) $('f-fs').value = c.fs;
   if (c.subcarriers) $('f-sub').value = c.subcarriers;
   if (c.port) $('f-port').value = c.port;
   if (c.baud) $('f-baud').value = c.baud;
