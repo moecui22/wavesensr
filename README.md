@@ -5,8 +5,11 @@ A browser app that runs entirely on this Mac. Two ESP32-S3 boards (esp-csi `csi_
 slice like an EEG recorder, and records it to CSV. It never shows simulated data: without
 the boards, Live says so and shows the setup instead.
 
+**Validated against a head-worn gyroscope** (pilot, 17 Sep 2026, n = 1, the author): 59 cued trials (48 head movements, 11 still), detection AUC 1.00 for both sensors, 100% hits, 9% false alarms, unchanged when the Wi-Fi stream is thinned from 70 Hz to 3 Hz. Movements were large (100–200 °/s), so this is a ceiling, not a limit. Data, analysis and figures: [`validation/pilot_2026-09-17`](validation/pilot_2026-09-17/).
+
+![Wi-Fi vs gyroscope](validation/pilot_2026-09-17/figure2_zscore.png)
+
 ```bash
-cd /Volumes/T7/ExpandAI/vitals
 /usr/bin/python3 server.py        # receiver on USB, then open http://localhost:8777
 ```
 
